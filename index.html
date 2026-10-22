@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Donut Forge</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍩</text></svg>">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+
+  :root {
+    --bg: #0a0610;
+    --surface: rgba(255,255,255,.045);
+    --surface-2: rgba(255,255,255,.08);
+    --border: rgba(255,255,255,.09);
+    --text: #f3edf7;
+    --muted: #a99bb5;
+    --pink: #ff77b8;
+    --gold: #ffc46b;
+    --green: #4ade80;
+    --red: #f87171;
+    --amber: #fbbf24;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    padding: 48px 20px 72px;
+    display: flex;
+    justify-content: center;
+    background: var(--bg);
+    color: var(--text);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(620px 420px at 12% -5%, rgba(255,119,184,.20), transparent 70%),
+      radial-gradient(720px 500px at 88% 5%, rgba(255,196,107,.14), transparent 70%),
+      radial-gradient(900px 620px at 50% 115%, rgba(126,84,255,.14), transparent 70%);
+  }
+
+  .wrap {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 880px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .logo {
+    width: 58px;
+    height: 58px;
+    flex: none;
+    filter: drop-shadow(0 0 22px rgba(255,119,184,.45));
+  }
+  h1 {
+    margin: 0;
+    font-size: 1.65rem;
+    letter-spacing: -.025em;
+  }
+  .sub {
+    margin: 3px 0 0;
+    font-family: var(--mono);
+    font-size: .85rem;
+    color: var(--muted);
+  }
+
+  .card {
+    position: relative;
+    padding: 28px;
+    border-radius: 22px;
+    border: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(255,255,255,.065), rgba(255,255,255,.018));
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    overflow: hidden;
+    transition: border-color .45s, box-shadow .45s;
+  }
+  .card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 2px;
+    background: var(--accent, transparent);
+    opacity: .95;
+    transition: background .45s;
+  }
+  .card[data-state="checking"] { --accent: var(--amber); }
+  .card[data-state="online"] {
+    --accent: var(--green);
+    border-color: rgba(74,222,128,.28);
+    box-shadow: 0 30px 70px -40px rgba(74,222,128,.75);
+  }
+  .card[data-state="offline"] {
+    --accent: var(--red);
+    border-color: rgba(248,113,113,.28);
+    box-shadow: 0 30px 70px -40px rgba(248,113,113,.75);
+  }
+
+  .status-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .dot {
+    position: relative;
+    width: 13px;
+    height: 13px;
+    flex: none;
+    border-radius: 50%;
+    background: var(--accent, var(--amber));
+    color: var(--accent, var(--amber));
+    transition: background .4s, color .4s;
+  }
+  .dot::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: currentColor;
+    animation: ping 2s cubic-bezier(0,0,.2,1) infinite;
+  }
+  .card[data-state="offline"] .dot::after { animation: none; opacity: 0; }
+  
+  @keyframes ping {
+    0%   { transform: scale(1);   opacity: .65; }
+    80%, 100% { transform: scale(2.7); opacity: 0; }
+  }
+
+  #state {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -.03em;
+    line-height: 1.1;
+  }
+
+  .note {
+    margin: 10px 0 0;
+    font-family: var(--mono);
+    font-size: .82rem;
+    color: var(--muted);
+    min-height: 1.2em;
+  }
+
+  .meta {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 24px;
+  }
+  .meta > div {
+    padding: 12px 14px;
+    border-radius: 13px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,.03);
+  }
+  .label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: .68rem;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--muted);
+  }
+  .value {
+    font-family: var(--mono);
+    font-size: .95rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 22px;
+    flex-wrap: wrap;
+  }
+  button, .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 18px;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    font: inherit;
+    font-size: .92rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform .15s, filter .15s, background .15s, border-color .15s;
+  }
+  button {
+    background: linear-gradient(135deg, var(--pink), #ff9f5a);
+    color: #1a0b14;
+    box-shadow: 0 10px 26px -12px rgba(255,119,184,.9);
+  }
+  button:hover { filter: brightness(1.08); transform: translateY(-1px); }
+  button:active { transform: translateY(0); }
+  button:disabled { opacity: .55; cursor: progress; transform: none; }
+  button:focus-visible, .btn:focus-visible {
+    outline: 2px solid var(--pink);
+    outline-offset: 3px;
+  }
+
+  .btn.ghost {
+    background: rgba(255,255,255,.05);
+    border-color: var(--border);
+    color: var(--text);
+  }
+  .btn.ghost:hover { background: rgba(255,255,255,.1); }
+
+  .next {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: .8rem;
+    color: var(--muted);
+  }
+  .next b { color: var(--text); font-weight: 600; }
+
+  .history {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 38px;
+    margin-top: 24px;
+  }
+  .history span {
+    flex: 1 1 0;
+    height: 45%;
+    border-radius: 2px;
+    background: rgba(255,255,255,.07);
+    transition: height .3s ease, background .3s ease;
+  }
+  .history span.up   { background: var(--green); height: 100%; opacity: .7; }
+  .history span.down { background: var(--red);   height: 100%; }
+  .history-empty {
+    font-family: var(--mono);
+    font-size: .78rem;
+    color: var(--muted);
+  }
+
+  footer {
+    margin-top: 30px;
+    font-size: .78rem;
+    line-height: 1.6;
+    color: var(--muted);
+    text-align: center;
+  }
+  footer code {
+    font-family: var(--mono);
+    font-size: .95em;
+    color: #d8c9e4;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  @media (max-width: 560px) {
+    body { padding: 32px 16px 56px; }
+    .card { padding: 22px; }
+    #state { font-size: 1.65rem; }
+    .meta { grid-template-columns: 1fr 1fr; }
+    .meta > div:last-child { grid-column: span 2; }
+    .next { margin-left: 0; width: 100%; }
+  }
+</style>
+</head>
+<body>
+<main class="wrap">
+
+  <header class="brand">
+    <svg class="logo" viewBox="0 0 64 64" aria-hidden="true">
+      <defs>
+        <linearGradient id="dg" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+          <stop stop-color="#ff77b8"/>
+          <stop offset="1" stop-color="#ffc46b"/>
+        </linearGradient>
+      </defs>
+      <circle cx="32" cy="32" r="25" fill="url(#dg)"/>
+      <circle cx="32" cy="32" r="9.5" fill="#0a0610"/>
+      <g stroke="#3a1020" stroke-width="3" stroke-linecap="round" opacity=".75">
+        <line x1="32" y1="13" x2="32" y2="18.5"/>
+        <line x1="19.5" y1="22" x2="23.5" y2="25.5"/>
+        <line x1="44.5" y1="22" x2="40.5" y2="25.5"/>
+        <line x1="17.5" y1="38" x2="23" y2="36"/>
+        <line x1="46.5" y1="38" x2="41" y2="36"/>
+        <line x1="32" y1="51" x2="32" y2="45.5"/>
+      </g>
+    </svg>
+    <div>
+      <h1>Donut Forge</h1>
+      <p class="sub">git.donutclub.site</p>
+    </div>
+  </header>
+
+  <section class="card" id="card" data-state="checking" aria-live="polite">
+    <div class="status-row">
+      <span class="dot" aria-hidden="true"></span>
+      <h2 id="state">Checking…</h2>
+    </div>
+    <p class="note" id="note">Contacting git.donutclub.site…</p>
+
+    <div class="meta">
+      <div>
+        <span class="label">Latency</span>
+        <span class="value" id="latency">—</span>
+      </div>
+      <div>
+        <span class="label">Session uptime</span>
+        <span class="value" id="uptime">—</span>
+      </div>
+      <div>
+        <span class="label">Last check</span>
+        <span class="value" id="checked">—</span>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="recheck" type="button">Check now</button>
+      <a class="btn ghost" href="https://git.donutclub.site" target="_blank" rel="noopener">Open site ↗</a>
+      <span class="next">next check in <b id="next">30s</b></span>
+    </div>
+
+    <div class="history" id="history" aria-label="Recent check results"></div>
+  </section>
+
+  <footer>
+    Status is checked from your browser every 30&nbsp;seconds. A green light means the host responded. Press <code>R</code> to re-check.
+  </footer>
+
+</main>
+
+<script>
+(() => {
+  'use strict';
+
+  const TARGET        = 'https://git.donutclub.site';
+  const TIMEOUT_MS    = 8000;
+  const INTERVAL_S    = 30;
+  const MAX_HISTORY   = 40;
+
+  const $ = (id) => document.getElementById(id);
+  const card      = $('card');
+  const stateEl   = $('state');
+  const noteEl    = $('note');
+  const latencyEl = $('latency');
+  const uptimeEl  = $('uptime');
+  const checkedEl = $('checked');
+  const nextEl    = $('next');
+  const historyEl = $('history');
+  const recheckBtn= $('recheck');
+
+  const history = [];
+  let countdown = INTERVAL_S;
+  let busy = false;
+
+  function setState(state) {
+    card.dataset.state = state;
+    stateEl.textContent =
+      state === 'online'  ? 'Online'   :
+      state === 'offline' ? 'Offline'  : 'Checking…';
+  }
+
+  function check() {
+    if (busy) return;
+    busy = true;
+    recheckBtn.disabled = true;
+    nextEl.textContent = '—';
+    setState('checking');
+    noteEl.textContent = 'Contacting ' + TARGET.replace('https://', '') + '…';
+
+    const t0 = performance.now();
+    const img = new Image();
+    let settled = false;
+
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      img.src = ''; 
+      render({ online: false, ms: null, note: 'Timed out after ' + (TIMEOUT_MS / 1000) + 's' });
+    }, TIMEOUT_MS);
+
+    img.onload = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      const ms = Math.round(performance.now() - t0);
+      render({ online: true, ms: ms, note: 'Host responded' });
+    };
+
+    img.onerror = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      render({ online: false, ms: null, note: 'Host unreachable or offline' });
+    };
+
+    img.src = TARGET + '/favicon.ico?probe=' + Date.now();
+  }
+
+  function render(result) {
+    setState(result.online ? 'online' : 'offline');
+    latencyEl.textContent = result.ms != null ? result.ms + ' ms' : '—';
+    checkedEl.textContent = new Date().toLocaleTimeString();
+    noteEl.textContent = result.note;
+
+    history.push(result.online);
+    if (history.length > MAX_HISTORY) history.shift();
+    renderHistory();
+
+    busy = false;
+    recheckBtn.disabled = false;
+    countdown = INTERVAL_S;
+  }
+
+  function renderHistory() {
+    historyEl.textContent = '';
+
+    if (!history.length) {
+      const p = document.createElement('span');
+      p.className = 'history-empty';
+      p.textContent = 'No checks yet…';
+      historyEl.appendChild(p);
+      uptimeEl.textContent = '—';
+      return;
+    }
+
+    const frag = document.createDocumentFragment();
+    for (const up of history) {
+      const bar = document.createElement('span');
+      bar.className = up ? 'up' : 'down';
+      frag.appendChild(bar);
+    }
+    historyEl.appendChild(frag);
+
+    const upCount = history.filter(Boolean).length;
+    uptimeEl.textContent = Math.round((upCount / history.length) * 100) + '%';
+  }
+
+  setInterval(() => {
+    if (busy || document.hidden) return;
+    countdown -= 1;
+    if (countdown <= 0) {
+      check();
+    } else {
+      nextEl.textContent = countdown + 's';
+    }
+  }, 1000);
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && !busy && countdown > INTERVAL_S - 3) {
+      check();
+    }
+  });
+
+  recheckBtn.addEventListener('click', () => check());
+
+  document.addEventListener('keydown', (e) => {
+    if ((e.key === 'r' || e.key === 'R') && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      const tag = document.activeElement && document.activeElement.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      check();
+    }
+  });
+
+  renderHistory();
+  check();
+})();
+</script>
+</body>
+</html>
